@@ -1,0 +1,67 @@
+name: multagal
+
+services:
+
+  #----UD3: base de datos relacional ----------------------------
+  mariadb:
+    image: mariadb:11
+    container_name: multagal-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: multagal
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+  #---- UD5: base de datos objeto-relacional + geoespacial -------
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: multagal-postgres
+    restart: unless-stopped
+    environment:
+    POSTGRES_DB: multagal
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      -"5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d multagal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+
+  #---- UD6: base de datos documental
+  mongo:
+    image: mongo:7
+    container_name: multagal-mongo
+    restart: unless-stopped
+    environment:
+    MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+    MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    MONGO_INITDB_DATABASE: multagal
+    ports:
+      -"27017:27017"  
+    volumes:
+      - mongo-data:/data/db 
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+volumes:
+  mariadb-data:
+  postgres-data:
+  mongo-data:
